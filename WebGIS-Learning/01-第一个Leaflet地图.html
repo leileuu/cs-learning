@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的第一个 Leaflet 地图</title>
+    
+    <!-- 1. 引入 Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* 2. 地图容器样式 */
+        #map {
+            width: 100%;
+            height: calc(100vh - 80px);
+            min-height: 500px;
+        }
+        
+        .info-box {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 280px;
+        }
+        
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .info-box code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🗺️ Leaflet 地图示例</h1>
+        <p>点击地图添加标记，右上角查看说明</p>
+    </header>
+    
+    <!-- 3. 地图容器 -->
+    <div id="map"></div>
+    
+    <!-- 说明框 -->
+    <div class="info-box">
+        <h3>📍 操作说明</h3>
+        <p>
+            <strong>缩放：</strong>滚轮或 +/- 按钮<br>
+            <strong>平移：</strong>拖动地图<br>
+            <strong>添加标记：</strong>点击地图<br>
+            <strong>查看详情：</strong>点击标记
+        </p>
+    </div>
+    
+    <!-- 4. 引入 Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 5. 初始化地图
+        // setView([纬度, 经度], 缩放级别)
+        // 上海: 31.2304, 121.4737
+        var map = L.map('map').setView([31.2304, 121.4737], 13);
+        
+        // 6. 添加 OpenStreetMap 底图
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // 7. 添加一个初始标记
+        var shanghaiTower = L.marker([31.2355, 121.5055], {
+            title: '上海中心大厦'
+        }).addTo(map);
+        
+        shanghaiTower.bindPopup(`
+            <strong>🏢 上海中心大厦</strong><br>
+            <hr style="margin: 5px 0">
+            中国第一高楼<br>
+            高度：632米<br>
+            <a href="https://baike.baidu.com/item/上海中心大厦" target="_blank">了解更多</a>
+        `);
+        
+        // 8. 添加一个圆
+        L.circle([31.2304, 121.4737], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.3,
+            radius: 500
+        }).addTo(map).bindPopup('上海市中心');
+        
+        // 9. 点击地图添加标记
+        var markers = [];
+        
+        map.on('click', function(e) {
+            var lat = e.latlng.lat.toFixed(4);
+            var lng = e.latlng.lng.toFixed(4);
+            
+            var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+            marker.bindPopup(`<strong>新标记</strong><br>纬度: ${lat}<br>经度: ${lng}`);
+            markers.push(marker);
+            
+            console.log(`添加标记: ${lat}, ${lng}`);
+        });
+        
+        // 10. 定位用户位置
+        function locateUser() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        
+                        L.marker([lat, lng], {
+                            icon: L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/markers/marker-icon-green.png',
+                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                popupAnchor: [1, -34],
+                                shadowSize: [41, 41]
+                            })
+                        }).addTo(map)
+                         .bindPopup('📍 你的位置')
+                         .openPopup();
+                        
+                        map.setView([lat, lng], 15);
+                    },
+                    function(error) {
+                        alert('无法获取位置: ' + error.message);
+                    }
+                );
+            } else {
+                alert('浏览器不支持地理定位');
+            }
+        }
+        
+        // 5秒后提示定位
+        setTimeout(locateUser, 5000);
+    </script>
+</body>
+</html>
