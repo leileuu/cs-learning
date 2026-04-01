@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON 加载示例</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; }
+        
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header h1 { font-size: 20px; }
+        
+        .controls button {
+            background: white;
+            color: #11998e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .controls button:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        
+        #map { width: 100%; height: calc(100vh - 60px); }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .legend h4 { margin-bottom: 10px; color: #333; }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌏 中国主要城市分布图</h1>
+        <div class="controls">
+            <button onclick="loadCities()">加载城市数据</button>
+            <button onclick="loadProvinces()">加载省份边界</button>
+            <button onclick="clearAll()">清空</button>
+        </div>
+    </header>
+    
+    <div id="map"></div>
+    
+    <div class="legend" id="legend" style="display:none;">
+        <h4>📊 图例</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#e74c3c;"></div>
+            <span>一线城市 (>1000万)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#f39c12;"></div>
+            <span>新一线城市 (500-1000万)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#27ae60;"></div>
+            <span>二线城市 (300-500万)</span>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([35.8617, 104.1954], 4);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        var citiesLayer, provincesLayer;
+        
+        // 模拟 GeoJSON 数据（中国主要城市）
+        var citiesGeoJSON = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "上海",
+                        "population": 24870000,
+                        "level": "一线城市",
+                        "description": "中国经济中心"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [121.4737, 31.2304] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "北京",
+                        "population": 21540000,
+                        "level": "一线城市",
+                        "description": "中国首都"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [116.4074, 39.9042] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "深圳",
+                        "population": 12530000,
+                        "level": "一线城市",
+                        "description": "科技创新中心"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [114.0579, 22.5431] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "广州",
+                        "population": 15300000,
+                        "level": "一线城市",
+                        "description": "华南门户城市"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [113.2644, 23.1291] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "成都",
+                        "population": 20930000,
+                        "level": "新一线城市",
+                        "description": "天府之国"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [104.0655, 30.6598] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "杭州",
+                        "population": 12350000,
+                        "level": "新一线城市",
+                        "description": "电子商务之都"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [120.1551, 30.2741] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "武汉",
+                        "population": 12450000,
+                        "level": "新一线城市",
+                        "description": "九省通衢"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [114.3055, 30.5928] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "南京",
+                        "population": 9511000,
+                        "level": "新一线城市",
+                        "description": "六朝古都"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [118.7969, 32.0603] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "西安",
+                        "population": 13160000,
+                        "level": "新一线城市",
+                        "description": "千年古都"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [108.9402, 34.3416] }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "重庆",
+                        "population": 32050000,
+                        "level": "新一线城市",
+                        "description": "山城雾都"
+                    },
+                    "geometry": { "type": "Point", "coordinates": [106.5516, 29.5630] }
+                }
+            ]
+        };
+        
+        // 根据人口级别返回颜色
+        function getColor(population) {
+            if (population > 15000000) return '#e74c3c';
+            if (population > 5000000) return '#f39c12';
+            return '#27ae60';
+        }
+        
+        // 城市点样式
+        function cityStyle(feature) {
+            var radius = Math.sqrt(feature.properties.population) / 300;
+            return {
+                radius: Math.min(Math.max(radius, 8), 25),
+                fillColor: getColor(feature.properties.population),
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            };
+        }
+        
+        // 城市点击事件
+        function onEachCity(feature, layer) {
+            var props = feature.properties;
+            var html = `
+                <div style="min-width:150px;">
+                    <h3 style="color:#333;margin-bottom:8px;">🏙️ ${props.name}</h3>
+                    <p><strong>人口:</strong> ${(props.population/10000).toFixed(0)}万</p>
+                    <p><strong>级别:</strong> ${props.level}</p>
+                    <p style="margin-top:5px;font-size:12px;color:#666;">${props.description}</p>
+                </div>
+            `;
+            layer.bindPopup(html);
+            
+            layer.on('mouseover', function() {
+                this.setStyle({ weight: 4 });
+                this.bringToFront();
+            });
+            layer.on('mouseout', function() {
+                this.setStyle({ weight: 2 });
+            });
+        }
+        
+        function loadCities() {
+            if (citiesLayer) map.removeLayer(citiesLayer);
+            
+            citiesLayer = L.geoJSON(citiesGeoJSON, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, cityStyle(feature));
+                },
+                onEachFeature: onEachCity
+            }).addTo(map);
+            
+            document.getElementById('legend').style.display = 'block';
+            map.fitBounds(citiesLayer.getBounds());
+        }
+        
+        function loadProvinces() {
+            alert('省份边界数据需要额外加载 GeoJSON 文件\n可访问 geojson.io 生成中国省份边界数据');
+        }
+        
+        function clearAll() {
+            if (citiesLayer) map.removeLayer(citiesLayer);
+            if (provincesLayer) map.removeLayer(provincesLayer);
+            document.getElementById('legend').style.display = 'none';
+            map.setView([35.8617, 104.1954], 4);
+        }
+    </script>
+</body>
+</html>
