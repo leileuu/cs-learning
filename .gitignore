@@ -1,0 +1,17 @@
+# Environment / IDE
+__pycache__/
+*.py[cod]
+.env
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
+package-lock.json
